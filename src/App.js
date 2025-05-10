@@ -1,32 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 
-const API_URL = 'http://localhost:3000/api/products';
+const API_URL = process.env.REACT_APP_API_URL;
 const PAGE_SIZE = 9;
 
 function App() {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState('');
-  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
-  // Fetch all (up to 500) then paginate locally
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchProducts(search.trim());
-    }, 500);
-    return () => clearTimeout(timeout);
-  }, [search]);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const fetchProducts = async (query = '') => {
+  const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}?limit=500${query ? `&search=${query}` : ''}`);
+      const query = `?search=${encodeURIComponent(search)}&page=${page}&limit=${PAGE_SIZE}`;
+      const res = await fetch(`${API_URL}${query}`);
       const data = await res.json();
       if (data.success) {
         setProducts(data.products);
-        setPage(1); // Reset to first page on new search
+        setTotal(data.total);
       }
     } catch (err) {
       console.error('Fetch error:', err);
@@ -34,12 +29,13 @@ function App() {
     setLoading(false);
   };
 
-  // Get current page slice
+  // Fetch on search or page change
   useEffect(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    const end = start + PAGE_SIZE;
-    setFiltered(products.slice(start, end));
-  }, [products, page]);
+    const delay = setTimeout(() => {
+      fetchProducts();
+    }, 300);
+    return () => clearTimeout(delay);
+  }, [search, page]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-6">
@@ -48,28 +44,60 @@ function App() {
           🛒 Ethio Shop Product Search
         </h1>
 
-        <div className="flex justify-center mb-10">
+        {/* Search Input + Clear */}
+        <div className="flex justify-center mb-10 gap-2">
           <input
             type="text"
             className="w-full max-w-lg px-5 py-3 rounded-full shadow-sm border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 transition bg-white"
             placeholder="🔍 Search for products (e.g., blouse)..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setPage(1);
+              setSearch(e.target.value);
+            }}
           />
+          {search && (
+            <button
+              onClick={() => {
+                setSearch('');
+                setPage(1);
+              }}
+              className="text-sm px-4 py-2 bg-gray-200 rounded-full hover:bg-gray-300 transition"
+            >
+              ❌ Clear
+            </button>
+          )}
         </div>
 
+        {/* Results Count */}
+        {!loading && total > 0 && (
+          <p className="text-center text-sm text-gray-600 mb-4">
+            Showing {products.length} of {total} results
+          </p>
+        )}
+
+        {/* Loading / Empty / Product Grid */}
         {loading ? (
-          <p className="text-center text-blue-600 text-lg font-medium">🔄 Loading products...</p>
-        ) : filtered.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 animate-pulse">
+            {Array.from({ length: PAGE_SIZE }).map((_, idx) => (
+              <div key={idx} className="bg-white h-72 rounded-lg shadow-md p-4 space-y-4">
+                <div className="bg-gray-300 h-40 w-full rounded-md" />
+                <div className="h-4 bg-gray-300 rounded w-3/4" />
+                <div className="h-4 bg-gray-300 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
+        ) : products.length === 0 ? (
           <p className="text-center text-gray-500">No products found.</p>
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {filtered.map((product, idx) => (
+              {products.map((product, idx) => (
                 <ProductCard key={idx} product={product} />
               ))}
             </div>
 
+            {/* Pagination */}
             <div className="flex justify-center items-center gap-4 mt-10">
               <button
                 onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
@@ -79,15 +107,11 @@ function App() {
                 ← Previous
               </button>
               <span className="text-gray-700 font-medium">
-                Page {page} of {Math.ceil(products.length / PAGE_SIZE)}
+                Page {page} of {totalPages}
               </span>
               <button
-                onClick={() =>
-                  setPage((prev) =>
-                    prev < Math.ceil(products.length / PAGE_SIZE) ? prev + 1 : prev
-                  )
-                }
-                disabled={page === Math.ceil(products.length / PAGE_SIZE)}
+                onClick={() => setPage((prev) => (prev < totalPages ? prev + 1 : prev))}
+                disabled={page === totalPages}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
               >
                 Next →
