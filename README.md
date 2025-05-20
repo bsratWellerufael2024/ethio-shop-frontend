@@ -6,7 +6,7 @@ A responsive product comparison web application built with **React.js** that hel
 
 ## 🌐 Live Demo
 
-🔗 [Visit App](https://your-deployment-link.vercel.app)  
+🔗 [Visit App](https://ethio-shop-frontend.vercel.app)  
 📦 Backend API: [Ethio Shop Backend Repo](https://github.com/bsratcodes/ethio-shop-backend)
 
 ---
