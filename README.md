@@ -11,11 +11,6 @@ A responsive product comparison web application built with **React.js** that hel
 
 ---
 
-## 📸 Screenshots
-
-<img src="public/screenshot-home.png" alt="Home Page" width="100%"/>
-<img src="public/screenshot-results.png" alt="Search Results" width="100%"/>
-
 ---
 
 ## ⚙️ Tech Stack
